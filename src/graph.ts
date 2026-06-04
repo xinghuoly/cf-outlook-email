@@ -1,0 +1,161 @@
+import type { GraphTokenResponse, GraphMailMessage } from './types';
+import { maskToken } from './utils/validation';
+
+const TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
+const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
+
+export interface GraphError {
+  code: string;
+  message: string;
+}
+
+// Get access token using refresh_token via Graph endpoint
+// Returns new_refresh_token when Microsoft issues a rotated token
+export async function getAccessToken(
+  clientId: string,
+  refreshToken: string
+): Promise<{ token?: string; newRefreshToken?: string; error?: GraphError }> {
+  try {
+    const body = new URLSearchParams({
+      client_id: clientId,
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      scope: 'https://graph.microsoft.com/.default',
+    });
+
+    const res = await fetch(TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+
+    if (!res.ok) {
+      const err = (await res.json().catch(() => ({}))) as Record<string, string>;
+      return {
+        error: {
+          code: err.error || 'TOKEN_FAILED',
+          message: err.error_description
+            ? sanitizeErrorMessage(err.error_description)
+            : `Token request failed with status ${res.status}`,
+        },
+      };
+    }
+
+    const data = (await res.json()) as GraphTokenResponse;
+    return {
+      token: data.access_token,
+      newRefreshToken: data.refresh_token,
+    };
+  } catch (e) {
+    return {
+      error: {
+        code: 'NETWORK_ERROR',
+        message: `Network error during token request: ${e instanceof Error ? e.message : 'unknown'}`,
+      },
+    };
+  }
+}
+
+// Fetch email list from inbox
+export async function fetchEmails(
+  accessToken: string,
+  options: { folder?: string; top?: number; skip?: number; keyword?: string } = {}
+): Promise<{ items?: GraphMailMessage[]; error?: GraphError }> {
+  const { folder = 'inbox', top = 20, skip = 0, keyword } = options;
+
+  let url = `${GRAPH_BASE}/me/mailFolders/${folder}/messages`;
+  const params = new URLSearchParams({
+    $top: String(top),
+    $skip: String(skip),
+    $orderby: 'receivedDateTime desc',
+    $select: 'id,subject,from,receivedDateTime,bodyPreview,isRead,hasAttachments',
+  });
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${accessToken}`,
+    Prefer: 'outlook.body-content-type="text"',
+  };
+
+  if (keyword) {
+    params.set('$search', `"${keyword}"`);
+    headers['ConsistencyLevel'] = 'eventual';
+  }
+
+  url += '?' + params.toString();
+
+  try {
+    const res = await fetch(url, { headers });
+
+    if (res.status === 429) {
+      return { error: { code: 'RATE_LIMITED', message: 'Graph API rate limited, please retry later' } };
+    }
+
+    if (!res.ok) {
+      const err = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      return {
+        error: {
+          code: 'GRAPH_ERROR',
+          message: `Failed to fetch emails: ${res.status}`,
+        },
+      };
+    }
+
+    const data = (await res.json()) as { value: GraphMailMessage[] };
+    return { items: data.value || [] };
+  } catch (e) {
+    return {
+      error: {
+        code: 'NETWORK_ERROR',
+        message: `Network error fetching emails: ${e instanceof Error ? e.message : 'unknown'}`,
+      },
+    };
+  }
+}
+
+// Fetch single email detail
+export async function fetchEmailDetail(
+  accessToken: string,
+  messageId: string
+): Promise<{ item?: GraphMailMessage; error?: GraphError }> {
+  const url =
+    `${GRAPH_BASE}/me/messages/${messageId}?` +
+    new URLSearchParams({
+      $select:
+        'id,subject,from,toRecipients,ccRecipients,receivedDateTime,body,bodyPreview,isRead,hasAttachments',
+    }).toString();
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Prefer: 'outlook.body-content-type="html"',
+      },
+    });
+
+    if (res.status === 404) {
+      return { error: { code: 'NOT_FOUND', message: '邮件不存在' } };
+    }
+
+    if (!res.ok) {
+      return {
+        error: { code: 'GRAPH_ERROR', message: `Failed to fetch email detail: ${res.status}` },
+      };
+    }
+
+    const data = (await res.json()) as GraphMailMessage;
+    return { item: data };
+  } catch (e) {
+    return {
+      error: {
+        code: 'NETWORK_ERROR',
+        message: `Network error: ${e instanceof Error ? e.message : 'unknown'}`,
+      },
+    };
+  }
+}
+
+// Remove any token-like strings from error messages
+function sanitizeErrorMessage(msg: string): string {
+  // Redact anything that looks like a token (long base64/alphanumeric strings)
+  return msg.replace(/[A-Za-z0-9_-]{40,}/g, (match) => maskToken(match));
+}
