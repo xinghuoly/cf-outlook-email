@@ -135,71 +135,65 @@ https://你的-worker-域名/api/init/你的JWT_SECRET
 如果方法一不工作，可以在 Cloudflare 仪表盘的 **Workers & Pages** → 你的 Worker → **Logs &** → **Interactive Playground** 中执行：
 
 ```javascript
-// 在 Playground 中执行以下代码（注意：D1 exec() 不支持 SQL 注释）
+// 在 Playground 中执行以下代码（使用 batch 替代 exec）
 const db = env.DB;
-await db.exec(`
-  CREATE TABLE IF NOT EXISTS settings (
-    key        TEXT PRIMARY KEY,
-    value      TEXT NOT NULL,
+await db.batch([
+  db.prepare(`CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS groups (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT NOT NULL UNIQUE,
+  )`),
+  db.prepare(`CREATE TABLE IF NOT EXISTS groups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
     description TEXT DEFAULT '',
-    color       TEXT DEFAULT '#2563eb',
-    created_at  TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TEXT DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS accounts (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    email         TEXT NOT NULL UNIQUE,
-    client_id     TEXT NOT NULL,
-    refresh_token TEXT NOT NULL,
-    password      TEXT DEFAULT '',
-    group_id      INTEGER DEFAULT 1,
-    remark        TEXT DEFAULT '',
-    status        TEXT DEFAULT 'active',
-    created_at    TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at    TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (group_id) REFERENCES groups(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS temp_emails (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    email      TEXT NOT NULL UNIQUE,
-    source     TEXT DEFAULT '',
-    remark     TEXT DEFAULT '',
+    color TEXT DEFAULT '#2563eb',
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS tags (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    name       TEXT NOT NULL UNIQUE,
-    color      TEXT DEFAULT '#6366f1',
+  )`),
+  db.prepare(`CREATE TABLE IF NOT EXISTS accounts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    client_id TEXT NOT NULL,
+    refresh_token TEXT NOT NULL,
+    password TEXT DEFAULT '',
+    group_id INTEGER DEFAULT 1,
+    remark TEXT DEFAULT '',
+    status TEXT DEFAULT 'active',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (group_id) REFERENCES groups(id)
+  )`),
+  db.prepare(`CREATE TABLE IF NOT EXISTS temp_emails (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    source TEXT DEFAULT '',
+    remark TEXT DEFAULT '',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )`),
+  db.prepare(`CREATE TABLE IF NOT EXISTS tags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    color TEXT DEFAULT '#6366f1',
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS account_tags (
+  )`),
+  db.prepare(`CREATE TABLE IF NOT EXISTS account_tags (
     account_id INTEGER NOT NULL,
-    tag_id     INTEGER NOT NULL,
+    tag_id INTEGER NOT NULL,
     PRIMARY KEY (account_id, tag_id),
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
     FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
-  );
-  CREATE INDEX IF NOT EXISTS idx_account_tags_tag ON account_tags(tag_id);
-
-  CREATE TABLE IF NOT EXISTS push_state (
-    account_id     INTEGER PRIMARY KEY,
+  )`),
+  db.prepare(`CREATE INDEX IF NOT EXISTS idx_account_tags_tag ON account_tags(tag_id)`),
+  db.prepare(`CREATE TABLE IF NOT EXISTS push_state (
+    account_id INTEGER PRIMARY KEY,
     last_pushed_at TEXT DEFAULT '',
-    updated_at     TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-  );
-`);
+  )`),
+]);
 
 // Insert default group if not exists
 const defaultGroup = await db.prepare('SELECT id FROM groups WHERE id = 1').first();
