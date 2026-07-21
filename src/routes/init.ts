@@ -18,8 +18,8 @@ init.get('/:secret', async (c) => {
     const db = c.env.DB;
 
     // Create tables if they don't exist (must match migrations/*.sql)
+    // Note: D1 exec() does not support SQL comments, so they are removed here
     await db.exec(`
-      -- settings: login password hash, site config, GPTMail config, etc.
       CREATE TABLE IF NOT EXISTS settings (
         key        TEXT PRIMARY KEY,
         value      TEXT NOT NULL,
@@ -27,7 +27,6 @@ init.get('/:secret', async (c) => {
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
 
-      -- groups: email account groups
       CREATE TABLE IF NOT EXISTS groups (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         name        TEXT NOT NULL UNIQUE,
@@ -37,7 +36,6 @@ init.get('/:secret', async (c) => {
         updated_at  TEXT DEFAULT CURRENT_TIMESTAMP
       );
 
-      -- accounts: Outlook email accounts
       CREATE TABLE IF NOT EXISTS accounts (
         id            INTEGER PRIMARY KEY AUTOINCREMENT,
         email         TEXT NOT NULL UNIQUE,
@@ -52,7 +50,6 @@ init.get('/:secret', async (c) => {
         FOREIGN KEY (group_id) REFERENCES groups(id)
       );
 
-      -- temp_emails: temporary email records
       CREATE TABLE IF NOT EXISTS temp_emails (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         email      TEXT NOT NULL UNIQUE,
@@ -62,7 +59,6 @@ init.get('/:secret', async (c) => {
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
 
-      -- tags: free-form labels for accounts (many-to-many, complements single-select groups)
       CREATE TABLE IF NOT EXISTS tags (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         name       TEXT NOT NULL UNIQUE,
@@ -70,7 +66,6 @@ init.get('/:secret', async (c) => {
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
 
-      -- account_tags: join table
       CREATE TABLE IF NOT EXISTS account_tags (
         account_id INTEGER NOT NULL,
         tag_id     INTEGER NOT NULL,
@@ -80,7 +75,6 @@ init.get('/:secret', async (c) => {
       );
       CREATE INDEX IF NOT EXISTS idx_account_tags_tag ON account_tags(tag_id);
 
-      -- push_state: per-account watermark for Telegram new-email push
       CREATE TABLE IF NOT EXISTS push_state (
         account_id     INTEGER PRIMARY KEY,
         last_pushed_at TEXT DEFAULT '',

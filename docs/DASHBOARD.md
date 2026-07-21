@@ -135,10 +135,9 @@ https://你的-worker-域名/api/init/你的JWT_SECRET
 如果方法一不工作，可以在 Cloudflare 仪表盘的 **Workers & Pages** → 你的 Worker → **Logs &** → **Interactive Playground** 中执行：
 
 ```javascript
-// 在 Playground 中执行以下代码（与 migrations/*.sql 保持一致）
+// 在 Playground 中执行以下代码（注意：D1 exec() 不支持 SQL 注释）
 const db = env.DB;
 await db.exec(`
-  -- settings: login password hash, site config, GPTMail config, etc.
   CREATE TABLE IF NOT EXISTS settings (
     key        TEXT PRIMARY KEY,
     value      TEXT NOT NULL,
@@ -146,7 +145,6 @@ await db.exec(`
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- groups: email account groups
   CREATE TABLE IF NOT EXISTS groups (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     name        TEXT NOT NULL UNIQUE,
@@ -156,7 +154,6 @@ await db.exec(`
     updated_at  TEXT DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- accounts: Outlook email accounts
   CREATE TABLE IF NOT EXISTS accounts (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     email         TEXT NOT NULL UNIQUE,
@@ -171,7 +168,6 @@ await db.exec(`
     FOREIGN KEY (group_id) REFERENCES groups(id)
   );
 
-  -- temp_emails: temporary email records
   CREATE TABLE IF NOT EXISTS temp_emails (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     email      TEXT NOT NULL UNIQUE,
@@ -181,7 +177,6 @@ await db.exec(`
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- tags: free-form labels for accounts
   CREATE TABLE IF NOT EXISTS tags (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT NOT NULL UNIQUE,
@@ -189,7 +184,6 @@ await db.exec(`
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- account_tags: join table
   CREATE TABLE IF NOT EXISTS account_tags (
     account_id INTEGER NOT NULL,
     tag_id     INTEGER NOT NULL,
@@ -199,7 +193,6 @@ await db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_account_tags_tag ON account_tags(tag_id);
 
-  -- push_state: per-account watermark for Telegram new-email push
   CREATE TABLE IF NOT EXISTS push_state (
     account_id     INTEGER PRIMARY KEY,
     last_pushed_at TEXT DEFAULT '',
