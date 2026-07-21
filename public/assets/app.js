@@ -745,7 +745,7 @@ function showAddAccountModal() {
         <input class="form-input" id="oauthRedirect" readonly value="${location.origin}/api/oauth/callback" style="flex:1;font-size:11px;font-family:monospace">
         <button class="btn btn-sm" type="button" onclick="copyText(document.getElementById('oauthRedirect').value,this)" style="white-space:nowrap">复制回调地址</button>
       </div>
-      <div style="font-size:11px;color:var(--text-dim);margin-top:6px;line-height:1.6">注册步骤见 <a href="https://github.com/roseforyou/cf-outlook-email/blob/main/docs/GUIDE.md#自己注册-azure-应用" target="_blank">部署教程</a>。若已有现成的 refresh_token，直接用「批量导入」或在下方手动填入即可，无需授权。</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:6px;line-height:1.6">注册步骤见 <a href="https://github.com/xinghuoly/cf-outlook-email/blob/main/docs/GUIDE.md#自己注册-azure-应用" target="_blank">部署教程</a>。若已有现成的 refresh_token，直接用「批量导入」或在下方手动填入即可，无需授权。</div>
     </div>
     <div style="background:var(--bg-hover);border:1px solid var(--border-light);border-radius:10px;padding:14px;margin-bottom:16px">
       <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;font-weight:550">方式二：手动授权（免注册 Azure，用默认 Thunderbird ID）</div>
@@ -1541,7 +1541,7 @@ async function renderSettings(el) {
     <div class="card">
       <h3 style="margin-bottom:8px">对外 API</h3>
       <div style="font-size:12.5px;color:var(--text-dim);line-height:1.7;margin-bottom:16px">
-        用 API Key 免登录拉取邮件（适合脚本自动取验证码）。详见 <a href="https://github.com/roseforyou/cf-outlook-email/blob/main/docs/API.md" target="_blank">API 文档</a>。
+        用 API Key 免登录拉取邮件（适合脚本自动取验证码）。详见 <a href="https://github.com/xinghuoly/cf-outlook-email/blob/main/docs/API.md" target="_blank">API 文档</a>。
       </div>
       <div class="form-group">
         <label class="form-label">API Key</label>

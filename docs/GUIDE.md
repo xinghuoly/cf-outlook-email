@@ -55,7 +55,7 @@ pnpm --version    # 应该显示版本号
 ## 第二步：获取代码
 
 ```bash
-git clone https://github.com/roseforyou/cf-outlook-email.git
+git clone https://github.com/xinghuoly/cf-outlook-email.git
 cd cf-outlook-email
 pnpm install
 ```
