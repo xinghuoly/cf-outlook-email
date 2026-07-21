@@ -17,7 +17,7 @@
 
 ⚠️ 此按钮**无法一键部署**：项目依赖 D1 数据库与 Secret，需手动建库、跑迁移、设密钥，按钮会因框架检测失败而报错。请按 📖 [详细部署教程](./docs/GUIDE.md) 操作（约 5 分钟）。
 
-🌐 [English](./README_EN.md) · 📖 [详细部署教程](./docs/GUIDE.md) · 🔌 [对外 API 文档](./docs/API.md)
+🌐 [English](./README_EN.md) · 🖥️ [界面部署](./docs/DASHBOARD.md) · 📖 [命令行部署](./docs/GUIDE.md) · 🔌 [对外 API 文档](./docs/API.md)
 
 </div>
 
@@ -39,7 +39,27 @@
 
 ## 🚀 快速部署
 
-> 💡 完整步骤请看 [详细部署教程](./docs/GUIDE.md)
+本项目支持两种部署方式，选择适合你的：
+
+### 方式一：界面部署（推荐普通用户）
+
+**无需安装任何工具**，通过 Cloudflare 仪表盘完成部署，不会暴露任何敏感信息。
+
+> 💡 完整步骤请看 [界面部署教程](./docs/DASHBOARD.md)
+
+**简要步骤：**
+1. Fork 本项目到你的 GitHub
+2. 在 [Cloudflare 仪表盘](https://dash.cloudflare.com/) 创建 Worker，导入你的 Fork
+3. 设置环境变量 `ADMIN_PASSWORD` 和 `COOKIE_SECRET`（Secret 类型）
+4. 创建 D1 数据库并绑定到 Worker（变量名必须为 `DB`）
+5. 访问 `https://你的域名/api/init` 初始化数据库
+6. 完成！用密码登录即可
+
+> ⚠️ 界面部署后，更新项目需要手动重新部署。如果项目有新版本，需要在 Cloudflare 仪表盘重新上传代码。
+
+### 方式二：命令行部署（推荐开发者）
+
+> 💡 完整步骤请看 [命令行部署教程](./docs/GUIDE.md)
 
 ```bash
 # 1. 克隆 & 安装
@@ -90,11 +110,22 @@ src/                     后端源码（Worker）
 ├── index.ts             入口 + 路由
 ├── auth.ts              HMAC-SHA256 Cookie 鉴权
 ├── graph.ts             Graph API 集成
-├── routes/              业务路由（6 个模块）
+├── routes/              业务路由（7 个模块）
+│   ├── auth.ts          登录/登出
+│   ├── accounts.ts      账号管理
+│   ├── emails.ts        邮件读取
+│   ├── groups.ts        分组管理
+│   ├── settings.ts      系统设置
+│   ├── oauth.ts         OAuth 授权
+│   ├── external.ts      对外 API
+│   ├── tempEmails.ts    临时邮箱
+│   ├── tags.ts          标签管理
+│   └── init.ts          数据库初始化（界面部署）
 └── utils/               加密、校验工具
 public/                  前端（静态 SPA）
 migrations/              D1 数据库建表
 tools/                   辅助脚本
+docs/                    文档
 ```
 
 ## 💰 免费额度

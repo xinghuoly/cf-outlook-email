@@ -11,13 +11,13 @@
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![Hono](https://img.shields.io/badge/Hono-4-E36002?logo=hono&logoColor=white)](https://hono.dev/)
 [![D1](https://img.shields.io/badge/D1-SQLite-003B57?logo=sqlite&logoColor=white)](https://developers.cloudflare.com/d1/)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/roseforyou/cf-outlook-email/pulls)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/xinghuoly/cf-outlook-email/pulls)
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/roseforyou/cf-outlook-email)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/xinghuoly/cf-outlook-email)
 
 ⚠️ This button **cannot one-click deploy** this project: it relies on a D1 database and Secrets, which require manually creating the DB, running migrations, and setting secrets — the button fails at framework detection. Please follow the 📖 [Deployment Guide](./docs/GUIDE.md) instead (~5 min).
 
-🌐 [中文](./README.md) · 📖 [Deployment Guide](./docs/GUIDE.md) · 🔌 [API Docs](./docs/API.md)
+🌐 [中文](./README.md) · 🖥️ [Dashboard Deployment](./docs/DASHBOARD.md) · 📖 [CLI Deployment](./docs/GUIDE.md) · 🔌 [API Docs](./docs/API.md)
 
 </div>
 
@@ -39,11 +39,29 @@
 
 ## 🚀 Quick Deploy
 
-> 💡 See the [Deployment Guide](./docs/GUIDE.md) for full steps.
+This project supports two deployment methods. Choose the one that suits you:
+
+### Method 1: Dashboard Deployment (Recommended for regular users)
+
+**No tools required** - deploy through the Cloudflare dashboard without exposing any sensitive information.
+
+> 💡 See the [Dashboard Deployment Guide](./docs/DASHBOARD.md) for full steps.
+
+**Quick steps:**
+1. Fork this project to your GitHub
+2. Create a Worker in [Cloudflare Dashboard](https://dash.cloudflare.com/) and import your Fork
+3. Set environment variables `ADMIN_PASSWORD` and `COOKIE_SECRET` (as Secret type)
+4. Create D1 database and bind to Worker (variable name must be `DB`)
+5. Visit `https://your-domain/api/init` to initialize database
+6. Done! Login with your password
+
+### Method 2: Command Line Deployment (Recommended for developers)
+
+> 💡 See the [Command Line Deployment Guide](./docs/GUIDE.md) for full steps.
 
 ```bash
 # 1. Clone & install
-git clone https://github.com/roseforyou/cf-outlook-email.git
+git clone https://github.com/xinghuoly/cf-outlook-email.git
 cd cf-outlook-email
 pnpm install
 

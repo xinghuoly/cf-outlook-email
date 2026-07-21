@@ -12,6 +12,7 @@ import tempEmailRoutes from './routes/tempEmails';
 import oauthRoutes from './routes/oauth';
 import externalRoutes from './routes/external';
 import tagRoutes from './routes/tags';
+import initRoutes from './routes/init';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -51,6 +52,9 @@ app.route('/api/auth', authRoutes);
 
 // OAuth callback (no auth middleware - handles redirect from Microsoft)
 app.route('/api/oauth', oauthRoutes);
+
+// Database initialization (no auth middleware - for dashboard deployment)
+app.route('/api/init', initRoutes);
 
 // External API (no cookie auth - uses its own API-key check)
 app.route('/api/external', externalRoutes);

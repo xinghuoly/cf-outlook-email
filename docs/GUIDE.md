@@ -1,6 +1,8 @@
-# 详细部署教程
+# 详细部署教程（命令行）
 
 本教程面向零基础用户，一步步教你把 Outlook 邮件管理工具部署到 Cloudflare。
+
+> 🖥️ **不想使用命令行？** 请查看 [界面部署教程](./DASHBOARD.md)，无需安装任何工具。
 
 ## 目录
 
@@ -382,6 +384,7 @@ curl -X POST https://login.microsoftonline.com/common/oauth2/v2.0/token \
 | `/api/temp-emails/:id/messages/:msgId` | GET | 临时邮件详情 |
 | `/api/oauth/authorize` | GET | 获取授权 URL |
 | `/api/oauth/callback` | GET | OAuth 回调 |
+| `/api/init` | GET | 初始化数据库（界面部署使用） |
 
 ---
 

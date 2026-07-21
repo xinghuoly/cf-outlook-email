@@ -4,6 +4,7 @@ dist/
 .dev.vars
 wrangler.toml
 CLAUDE.md
+package-lock.json
 *.db
 *.db-journal
 *.db-wal

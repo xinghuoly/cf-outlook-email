@@ -2,6 +2,8 @@
 
 用 API Key 免登录拉取指定邮箱的邮件，适合脚本自动获取验证码、集成到其他系统。
 
+> 💡 **界面部署用户**：首次部署后需要访问 `/api/init` 初始化数据库。
+
 ## 1. 启用 / 获取 API Key
 
 登录后台 → **系统设置** → **对外 API** → 点「生成 API Key」。
@@ -11,6 +13,25 @@
 - Key 是明文存放在你自己的 D1 里，只有后台登录后能看到。
 
 ## 2. 接口
+
+### 数据库初始化
+
+```
+GET /api/init
+```
+
+**说明**：初始化数据库表结构，用于界面部署时首次部署。
+
+**返回**：
+```json
+{
+  "success": true,
+  "data": {
+    "message": "数据库初始化成功！",
+    "tables": ["settings", "groups", "accounts", "temp_emails", "tags"]
+  }
+}
+```
 
 ### 获取邮件列表
 
@@ -108,6 +129,7 @@ for mail in data["data"]["items"]:
 | 400 | `DISABLED` | 该账号已被停用 |
 | 502 | `TOKEN_FAILED` | 该账号 Token 失效，需在后台「重新授权」 |
 | 502 | `GRAPH_ERROR` | 调用 Microsoft Graph 失败 |
+| 500 | `INIT_FAILED` | 数据库初始化失败 |
 
 ## 6. 安全建议
 
