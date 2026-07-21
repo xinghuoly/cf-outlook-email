@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Env } from '../types';
 import { ok, fail } from '../response';
+import { run, first } from '../db';
 
 // Database initialization endpoint (protected by JWT_SECRET)
 // Used for dashboard deployment where wrangler CLI is not available
@@ -17,25 +18,24 @@ init.get('/:secret', async (c) => {
 
     const db = c.env.DB;
 
-    // Create tables one by one (reference: cloud-mail init.js pattern)
-    // Each statement uses db.prepare().run() for reliability
-    await db.prepare(`CREATE TABLE IF NOT EXISTS settings (
+    // Create tables one by one using project's run() helper
+    await run(db, `CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )`).run();
+    )`);
 
-    await db.prepare(`CREATE TABLE IF NOT EXISTS groups (
+    await run(db, `CREATE TABLE IF NOT EXISTS groups (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
       description TEXT DEFAULT '',
       color TEXT DEFAULT '#2563eb',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )`).run();
+    )`);
 
-    await db.prepare(`CREATE TABLE IF NOT EXISTS accounts (
+    await run(db, `CREATE TABLE IF NOT EXISTS accounts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email TEXT NOT NULL UNIQUE,
       client_id TEXT NOT NULL,
@@ -47,47 +47,46 @@ init.get('/:secret', async (c) => {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (group_id) REFERENCES groups(id)
-    )`).run();
+    )`);
 
-    await db.prepare(`CREATE TABLE IF NOT EXISTS temp_emails (
+    await run(db, `CREATE TABLE IF NOT EXISTS temp_emails (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email TEXT NOT NULL UNIQUE,
       source TEXT DEFAULT '',
       remark TEXT DEFAULT '',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )`).run();
+    )`);
 
-    await db.prepare(`CREATE TABLE IF NOT EXISTS tags (
+    await run(db, `CREATE TABLE IF NOT EXISTS tags (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
       color TEXT DEFAULT '#6366f1',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )`).run();
+    )`);
 
-    await db.prepare(`CREATE TABLE IF NOT EXISTS account_tags (
+    await run(db, `CREATE TABLE IF NOT EXISTS account_tags (
       account_id INTEGER NOT NULL,
       tag_id INTEGER NOT NULL,
       PRIMARY KEY (account_id, tag_id),
       FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
       FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
-    )`).run();
+    )`);
 
-    await db.prepare(`CREATE INDEX IF NOT EXISTS idx_account_tags_tag ON account_tags(tag_id)`).run();
+    await run(db, `CREATE INDEX IF NOT EXISTS idx_account_tags_tag ON account_tags(tag_id)`);
 
-    await db.prepare(`CREATE TABLE IF NOT EXISTS push_state (
+    await run(db, `CREATE TABLE IF NOT EXISTS push_state (
       account_id INTEGER PRIMARY KEY,
       last_pushed_at TEXT DEFAULT '',
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
-    )`).run();
+    )`);
 
     // Insert default group if not exists
-    const defaultGroup = await db.prepare('SELECT id FROM groups WHERE id = 1').first();
+    const defaultGroup = await first<{ id: number }>(db, 'SELECT id FROM groups WHERE id = 1');
     if (!defaultGroup) {
-      await db.prepare('INSERT INTO groups (id, name, description, color) VALUES (?, ?, ?, ?)').bind(
-        1, '默认分组', '默认邮箱分组', '#2563eb'
-      ).run();
+      await run(db, 'INSERT INTO groups (id, name, description, color) VALUES (?, ?, ?, ?)',
+        [1, '默认分组', '默认邮箱分组', '#2563eb']);
     }
 
     // Insert default settings if not exists
@@ -104,9 +103,9 @@ init.get('/:secret', async (c) => {
     ];
 
     for (const setting of defaultSettings) {
-      const existing = await db.prepare('SELECT key FROM settings WHERE key = ?').first(setting.key);
+      const existing = await first<{ key: string }>(db, 'SELECT key FROM settings WHERE key = ?', [setting.key]);
       if (!existing) {
-        await db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').bind(setting.key, setting.value).run();
+        await run(db, 'INSERT INTO settings (key, value) VALUES (?, ?)', [setting.key, setting.value]);
       }
     }
 
