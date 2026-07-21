@@ -2,7 +2,7 @@
 
 用 API Key 免登录拉取指定邮箱的邮件，适合脚本自动获取验证码、集成到其他系统。
 
-> 💡 **界面部署用户**：首次部署后需要访问 `/api/init` 初始化数据库。
+> 💡 **界面部署用户**：首次部署后需要访问 `/api/init/你的JWT_SECRET` 初始化数据库。
 
 ## 1. 启用 / 获取 API Key
 
@@ -17,10 +17,16 @@
 ### 数据库初始化
 
 ```
-GET /api/init
+GET /api/init/:secret
 ```
 
-**说明**：初始化数据库表结构，用于界面部署时首次部署。
+**说明**：初始化数据库表结构，用于界面部署时首次部署。`secret` 为 `JWT_SECRET` 环境变量的值。
+
+**参数**：
+
+| 参数 | 必填 | 说明 |
+|------|:----:|------|
+| `secret` | ✅ | JWT_SECRET 环境变量的值 |
 
 **返回**：
 ```json
@@ -28,7 +34,7 @@ GET /api/init
   "success": true,
   "data": {
     "message": "数据库初始化成功！",
-    "tables": ["settings", "groups", "accounts", "temp_emails", "tags"]
+    "tables": ["settings", "groups", "accounts", "temp_emails", "tags", "account_tags", "push_state"]
   }
 }
 ```
@@ -123,7 +129,7 @@ for mail in data["data"]["items"]:
 | HTTP | code | 含义 |
 |:----:|------|------|
 | 403 | `API_DISABLED` | 还没生成 API Key（去系统设置生成） |
-| 401 | `UNAUTHORIZED` | Key 缺失或不正确 |
+| 401 | `UNAUTHORIZED` | Key 缺失或不正确，或初始化密钥无效 |
 | 400 | `BAD_REQUEST` | 缺少 `email` 参数 |
 | 404 | `NOT_FOUND` | 该邮箱不在后台账号列表里 |
 | 400 | `DISABLED` | 该账号已被停用 |

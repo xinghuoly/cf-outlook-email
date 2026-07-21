@@ -1,0 +1,20 @@
+name = "outlook-email"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# D1 database binding (database_id will be set via Cloudflare dashboard for interface deployment)
+# For CLI deployment, use wrangler.toml.example and fill in database_id
+[[d1_databases]]
+binding = "DB"
+database_name = "outlook-email-db"
+database_id = ""
+
+# Scheduled token refresh. This is just the BASE wake-up rate (every 6h);
+# the actual interval / batch / on-off is controlled in 系统设置 at runtime.
+# Free plan allows up to 5 cron triggers per account.
+[triggers]
+crons = ["0 */6 * * *"]

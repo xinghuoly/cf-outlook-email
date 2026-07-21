@@ -130,6 +130,8 @@ pnpm exec wrangler d1 migrations apply outlook-email-db --remote
 
 提示 "continue?" 时输入 `Y` 回车。
 
+> 💡 **界面部署用户**：如果你是通过 Cloudflare 仪表盘部署的，可以跳过此步骤，直接访问 `https://你的域名/api/init/你的JWT_SECRET` 初始化数据库。
+
 ---
 
 ## 第七步：部署

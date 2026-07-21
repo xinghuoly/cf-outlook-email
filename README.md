@@ -49,10 +49,10 @@
 
 **简要步骤：**
 1. Fork 本项目到你的 GitHub
-2. 在 [Cloudflare 仪表盘](https://dash.cloudflare.com/) 创建 Worker，导入你的 Fork
-3. 设置环境变量 `ADMIN_PASSWORD` 和 `COOKIE_SECRET`（Secret 类型）
+2. 在 [Cloudflare 仪表盘](https://dash.cloudflare.com/) 创建 Worker，导入你的 Fork（项目已包含 `wrangler.toml`，但 `database_id` 为空）
+3. 设置环境变量 `ADMIN_PASSWORD`、`COOKIE_SECRET` 和 `JWT_SECRET`（均为 Secret 类型）
 4. 创建 D1 数据库并绑定到 Worker（变量名必须为 `DB`）
-5. 访问 `https://你的域名/api/init` 初始化数据库
+5. 访问 `https://你的域名/api/init/你的JWT_SECRET` 初始化数据库
 6. 完成！用密码登录即可
 
 > ⚠️ 界面部署后，更新项目需要手动重新部署。如果项目有新版本，需要在 Cloudflare 仪表盘重新上传代码。

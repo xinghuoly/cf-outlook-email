@@ -54,6 +54,8 @@
 
 > 此时会部署一个默认的 Hello World 页面，我们稍后会替换它。
 
+> 💡 **说明**：项目中已包含 `wrangler.toml` 文件，包含了基本的构建配置。`database_id` 为空，需要在下一步绑定数据库时在 Cloudflare 仪表盘中配置。
+
 ---
 
 ## 第三步：设置环境变量
@@ -70,12 +72,14 @@
 |--------|-----|------|
 | `ADMIN_PASSWORD` | 你的登录密码 | 管理员登录密码 |
 | `COOKIE_SECRET` | 随机字符串（至少32位） | Cookie 加密密钥 |
+| `JWT_SECRET` | 随机字符串（至少32位） | 数据库初始化密钥 |
 
-> ⚠️ **重要**：`ADMIN_PASSWORD` 和 `COOKIE_SECRET` 必须设为 **Secret** 类型（点击变量名右边的锁图标），而不是普通变量。
+> ⚠️ **重要**：`ADMIN_PASSWORD`、`COOKIE_SECRET` 和 `JWT_SECRET` 必须设为 **Secret** 类型（点击变量名右边的锁图标），而不是普通变量。
 
-**如何生成 Cookie_SECRET**：
+**如何生成密钥**：
 - 在键盘上随机敲一串字符，如：`aK3mX9pQ2wE8rT6yU1iO4sD7fG0hJ5l`
 - 或者使用在线密码生成器
+- 建议每个密钥使用不同的值
 
 可选变量：
 
@@ -116,57 +120,103 @@
 
 ### 方法一：使用已部署的初始化端点（推荐）
 
-项目已内置数据库初始化接口。部署后访问以下 URL 即可自动初始化：
+项目已内置数据库初始化接口。部署后访问以下 URL 即可自动初始化（将 `你的JWT_SECRET` 替换为你在第三步设置的 `JWT_SECRET` 值）：
 
 ```
-https://你的-worker-域名/api/init
+https://你的-worker-域名/api/init/你的JWT_SECRET
 ```
 
 > ⚠️ 注意：首次访问时可能需要等待几秒，因为需要先完成部署。
+> 
+> 💡 `JWT_SECRET` 用于保护初始化端点，防止恶意访问。初始化完成后，建议在生产环境中删除此环境变量。
 
 ### 方法二：通过 Wrangler 控制台初始化（备用）
 
 如果方法一不工作，可以在 Cloudflare 仪表盘的 **Workers & Pages** → 你的 Worker → **Logs &** → **Interactive Playground** 中执行：
 
 ```javascript
-// 在 Playground 中执行以下代码
+// 在 Playground 中执行以下代码（与 migrations/*.sql 保持一致）
 const db = env.DB;
 await db.exec(`
+  -- settings: login password hash, site config, GPTMail config, etc.
   CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
+    key        TEXT PRIMARY KEY,
+    value      TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
+
+  -- groups: email account groups
   CREATE TABLE IF NOT EXISTS groups (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL UNIQUE,
     description TEXT DEFAULT '',
-    color TEXT DEFAULT '#3b82f6',
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
+    color       TEXT DEFAULT '#2563eb',
+    created_at  TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TEXT DEFAULT CURRENT_TIMESTAMP
   );
+
+  -- accounts: Outlook email accounts
   CREATE TABLE IF NOT EXISTS accounts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT NOT NULL UNIQUE,
-    client_id TEXT NOT NULL,
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    email         TEXT NOT NULL UNIQUE,
+    client_id     TEXT NOT NULL,
     refresh_token TEXT NOT NULL,
-    password TEXT DEFAULT '',
-    group_id INTEGER DEFAULT 1,
-    remark TEXT DEFAULT '',
-    status TEXT DEFAULT 'active',
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
+    password      TEXT DEFAULT '',
+    group_id      INTEGER DEFAULT 1,
+    remark        TEXT DEFAULT '',
+    status        TEXT DEFAULT 'active',
+    created_at    TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (group_id) REFERENCES groups(id)
   );
+
+  -- temp_emails: temporary email records
   CREATE TABLE IF NOT EXISTS temp_emails (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT NOT NULL UNIQUE,
-    source TEXT DEFAULT '',
-    remark TEXT DEFAULT '',
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    email      TEXT NOT NULL UNIQUE,
+    source     TEXT DEFAULT '',
+    remark     TEXT DEFAULT '',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- tags: free-form labels for accounts
+  CREATE TABLE IF NOT EXISTS tags (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL UNIQUE,
+    color      TEXT DEFAULT '#6366f1',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- account_tags: join table
+  CREATE TABLE IF NOT EXISTS account_tags (
+    account_id INTEGER NOT NULL,
+    tag_id     INTEGER NOT NULL,
+    PRIMARY KEY (account_id, tag_id),
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_account_tags_tag ON account_tags(tag_id);
+
+  -- push_state: per-account watermark for Telegram new-email push
+  CREATE TABLE IF NOT EXISTS push_state (
+    account_id     INTEGER PRIMARY KEY,
+    last_pushed_at TEXT DEFAULT '',
+    updated_at     TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
   );
 `);
+
+// Insert default group if not exists
+const defaultGroup = await db.prepare('SELECT id FROM groups WHERE id = 1').first();
+if (!defaultGroup) {
+  await db.prepare('INSERT INTO groups (id, name, description, color) VALUES (1, ?, ?, ?)').bind(
+    '默认分组',
+    '默认邮箱分组',
+    '#2563eb'
+  ).run();
+}
 ```
 
 ---

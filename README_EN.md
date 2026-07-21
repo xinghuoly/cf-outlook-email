@@ -49,11 +49,13 @@ This project supports two deployment methods. Choose the one that suits you:
 
 **Quick steps:**
 1. Fork this project to your GitHub
-2. Create a Worker in [Cloudflare Dashboard](https://dash.cloudflare.com/) and import your Fork
-3. Set environment variables `ADMIN_PASSWORD` and `COOKIE_SECRET` (as Secret type)
+2. Create a Worker in [Cloudflare Dashboard](https://dash.cloudflare.com/) and import your Fork (project includes `wrangler.toml`, but `database_id` is empty)
+3. Set environment variables `ADMIN_PASSWORD`, `COOKIE_SECRET` and `JWT_SECRET` (all as Secret type)
 4. Create D1 database and bind to Worker (variable name must be `DB`)
-5. Visit `https://your-domain/api/init` to initialize database
+5. Visit `https://your-domain/api/init/your-jwt-secret` to initialize database
 6. Done! Login with your password
+
+> ⚠️ After dashboard deployment, updating requires manual re-deployment. For new versions, you need to re-upload code in Cloudflare dashboard.
 
 ### Method 2: Command Line Deployment (Recommended for developers)
 

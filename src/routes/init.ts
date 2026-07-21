@@ -2,12 +2,19 @@ import { Hono } from 'hono';
 import type { Env } from '../types';
 import { ok, fail } from '../response';
 
-// Database initialization endpoint (no auth required)
+// Database initialization endpoint (protected by JWT_SECRET)
 // Used for dashboard deployment where wrangler CLI is not available
+// URL: /api/init/:secret
 const init = new Hono<{ Bindings: Env }>();
 
-init.get('/', async (c) => {
+init.get('/:secret', async (c) => {
   try {
+    // Verify JWT_SECRET
+    const secret = c.req.param('secret');
+    if (!c.env.JWT_SECRET || secret !== c.env.JWT_SECRET) {
+      return fail('UNAUTHORIZED', '无效的初始化密钥', 401);
+    }
+
     const db = c.env.DB;
 
     // Create tables if they don't exist (must match migrations/*.sql)
